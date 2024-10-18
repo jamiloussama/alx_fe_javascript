@@ -139,6 +139,107 @@ function populateCategories() {
     const quoteDisplay = document.getElementById('quoteDisplay');
     quoteDisplay.innerHTML = filteredQuotes.map(quote => `<p>${quote.text} - <strong>${quote.category}</strong></p>`).join('');
   }
+
+  const SERVER_URL = "https://jsonplaceholder.typicode.com/posts"; // Placeholder API endpoint
+
+// Function to fetch quotes from the "server"
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch(SERVER_URL);
+    const serverQuotes = await response.json();
+    console.log('Fetched quotes from server:', serverQuotes);
+
+    // Assume the server returns an array of quotes
+    return serverQuotes;
+  } catch (error) {
+    console.error("Error fetching quotes from server:", error);
+  }
+}
+
+// Function to post a new quote to the "server"
+async function postQuoteToServer(quote) {
+  try {
+    const response = await fetch(SERVER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(quote)
+    });
+
+    const result = await response.json();
+    console.log('Posted new quote to server:', result);
+  } catch (error) {
+    console.error("Error posting new quote to server:", error);
+  }
+}
+
+// Function to sync quotes from server to local storage
+async function syncQuotesWithServer() {
+    const serverQuotes = await fetchQuotesFromServer();
+    
+    if (serverQuotes) {
+      const mergedQuotes = mergeQuotes(localStorage.getItem('quotes'), serverQuotes);
+      localStorage.setItem('quotes', JSON.stringify(mergedQuotes));
+      alert("Data synced with server.");
+    }
+  }
+  
+  // Function to merge local and server quotes
+  function mergeQuotes(localQuotes, serverQuotes) {
+    const local = JSON.parse(localQuotes) || [];
+    
+    // Simple conflict resolution: server's data takes precedence
+    const merged = [...serverQuotes]; // Assume server data is more recent
+    local.forEach(localQuote => {
+      if (!serverQuotes.find(sq => sq.text === localQuote.text)) {
+        merged.push(localQuote); // Add local quote if it's not already on the server
+      }
+    });
+    
+    return merged;
+  }
+  
+  // Periodic syncing
+  setInterval(syncQuotesWithServer, 30000); // Sync every 30 seconds
+
+  // Simple UI to notify user of conflicts
+function notifyConflict() {
+    const conflictNotification = document.createElement('div');
+    conflictNotification.id = 'conflictNotification';
+    conflictNotification.textContent = 'Conflict detected! Server data has been applied.';
+    document.body.appendChild(conflictNotification);
+  
+    setTimeout(() => {
+      document.getElementById('conflictNotification').remove();
+    }, 5000); // Remove notification after 5 seconds
+  }
+  
+  // Manual conflict resolution: allow users to choose between server and local data
+  function manualConflictResolution(localQuote, serverQuote) {
+    const resolution = confirm(`Conflict detected for quote "${localQuote.text}". Do you want to keep the local version?`);
+    return resolution ? localQuote : serverQuote;
+  }
+  
+  // Modify merge function to support manual conflict resolution
+  function mergeQuotesWithManualResolution(localQuotes, serverQuotes) {
+    const local = JSON.parse(localQuotes) || [];
+    
+    const merged = [...serverQuotes]; // Server data as baseline
+    
+    local.forEach(localQuote => {
+      const conflict = serverQuotes.find(sq => sq.text === localQuote.text);
+      if (conflict) {
+        const resolvedQuote = manualConflictResolution(localQuote, conflict);
+        merged.push(resolvedQuote);
+      } else {
+        merged.push(localQuote);
+      }
+    });
+    
+    return merged;
+  }
+  
   
   
 
