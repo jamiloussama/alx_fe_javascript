@@ -58,6 +58,9 @@ function addQuote() {
     // Save the updated quotes array to local storage
     saveQuotes();
 
+    // Update categories dropdown
+    populateCategories();
+
     // Clear input fields
     document.getElementById("newQuoteText").value = "";
     document.getElementById("newQuoteCategory").value = "";
@@ -98,11 +101,51 @@ function importFromJsonFile(event) {
     
     fileReader.readAsText(event.target.files[0]);
   }
+
+  // Function to dynamically populate the category dropdown
+function populateCategories() {
+    const categories = ['all', ...new Set(quotes.map(quote => quote.category))];
+    const categoryFilter = document.getElementById('categoryFilter');
+    
+    // Clear existing options
+    categoryFilter.innerHTML = '';
+    
+    // Populate with dynamic categories
+    categories.forEach(category => {
+      const option = document.createElement('option');
+      option.value = category;
+      option.textContent = category;
+      categoryFilter.appendChild(option);
+    });
+  
+    // Restore last selected filter from local storage
+    const lastSelectedCategory = localStorage.getItem('selectedCategory');
+    if (lastSelectedCategory) {
+      categoryFilter.value = lastSelectedCategory;
+    }
+  }
+  
+  // Function to display quotes based on the selected category
+  function filterQuotes() {
+    const selectedCategory = document.getElementById('categoryFilter').value;
+    
+    // Store the selected category in local storage
+    localStorage.setItem('selectedCategory', selectedCategory);
+    
+    const filteredQuotes = selectedCategory === 'all'
+      ? quotes
+      : quotes.filter(quote => quote.category === selectedCategory);
+    
+    const quoteDisplay = document.getElementById('quoteDisplay');
+    quoteDisplay.innerHTML = filteredQuotes.map(quote => `<p>${quote.text} - <strong>${quote.category}</strong></p>`).join('');
+  }
   
   
 
 // On page load, check if a quote was displayed in the current session
 window.onload = function() {
+    populateCategories();
+  filterQuotes();
     const lastQuote = sessionStorage.getItem('lastQuote');
     if (lastQuote) {
       const quote = JSON.parse(lastQuote);
